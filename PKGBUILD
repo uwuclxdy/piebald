@@ -18,7 +18,7 @@ optdepends=(
 provides=('piebald')
 conflicts=('piebald')
 options=(!strip !debug)
-source=("https://github.com/Piebald-AI/piebald/releases/download/v${pkgver}/Piebald_${pkgver}_amd64.deb")
+source=("https://github.com/Piebald-AI/piebald-issues/releases/download/v${pkgver}/Piebald_${pkgver}_amd64.deb")
 sha256sums=('cfd6668958f82c060c72c6c4e6c2801bc450f192e8b5768a3e82a86bdfdd5ffa')
 
 package() {

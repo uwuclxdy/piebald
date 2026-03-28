@@ -17,7 +17,12 @@ jobs:
       - name: Check for new version
         id: version
         run: |
-          LATEST=$(curl -sL https://api.github.com/repos/Piebald-AI/piebald/releases/latest | jq -r .tag_name | sed 's/^v//')
+          LATEST=$(curl -sL https://api.github.com/repos/Piebald-AI/piebald-issues/releases/latest | jq -r '.tag_name // empty' | sed 's/^v//')
+          if [ -z "$LATEST" ]; then
+            echo "::warning::Could not fetch latest version from GitHub API"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           CURRENT=$(grep '^pkgver=' PKGBUILD | cut -d= -f2)
           echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
           echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
@@ -32,8 +37,13 @@ jobs:
         env:
           NEW_VER: ${{ steps.version.outputs.latest }}
         run: |
-          DEB_URL="https://github.com/Piebald-AI/piebald/releases/download/v${NEW_VER}/Piebald_${NEW_VER}_amd64.deb"
-          SHA256=$(curl -sL "$DEB_URL" | sha256sum | cut -d' ' -f1)
+          DEB_URL="https://github.com/Piebald-AI/piebald-issues/releases/download/v${NEW_VER}/Piebald_${NEW_VER}_amd64.deb"
+          HTTP_CODE=$(curl -sL -o /tmp/piebald.deb -w '%{http_code}' "$DEB_URL")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Failed to download .deb (HTTP $HTTP_CODE): $DEB_URL"
+            exit 1
+          fi
+          SHA256=$(sha256sum /tmp/piebald.deb | cut -d' ' -f1)
           sed -i "s/^pkgver=.*/pkgver=${NEW_VER}/" PKGBUILD
           sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
           sed -i "s/^sha256sums=.*/sha256sums=('${SHA256}')/" PKGBUILD
